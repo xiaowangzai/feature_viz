@@ -3,7 +3,7 @@ import tensorflow as tf
 import cv2
 import numpy as np
 
-def feature_maps(img_locs):
+def res_feature_maps(imgs):
     img = tf.placeholder(dtype='float32', shape=(None, None, None, None))
     FeatureExtractor = faster_rcnn_resnet_v1.FasterRCNNResnet50FeatureExtractor(
         is_training=False,
@@ -17,16 +17,20 @@ def feature_maps(img_locs):
     init_op = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(init_op)
-        for i, loc_i in enumerate(img_locs):
-            print('feature embed iter {}/{}'.format(i, len(img_locs)))
-            original_img = cv2.imread(loc_i)
-            #original_img = cv2.resize(original_img, dsize=(320, 240))
-            original_img = np.expand_dims(
-                original_img, axis=0).astype(float)
-            learned_embedding = sess.run(rpn_feature_map, feed_dict={
-                                         img: original_img}).flatten()
+        for i, original_img in enumerate(imgs):
+            print('feature embed iter {}/{}'.format(i, len(imgs)))
+            original_img = np.reshape(original_img, [28, 28, 1]) # [batch, height, width, channels]
+            original_img = cv2.resize(original_img, (33, 33)) # gotta be atleast 33x33 b/c resnet feature extractor is a joke
+            original_img = np.reshape(original_img, [-1, 33, 33, 1])
+            import pdb; pdb.set_trace()
+            learned_embedding = sess.run(rpn_feature_map, feed_dict={img: original_img}).flatten()
             return learned_embedding
 
-features = feature_maps(['p.jpg'])
+def vizualize_feature():
+    return
+
+mnist = tf.contrib.learn.datasets.load_dataset("mnist")
+train_data = mnist.train.images
+features = res_feature_maps([train_data[0]])
 import pdb; pdb.set_trace()
 
