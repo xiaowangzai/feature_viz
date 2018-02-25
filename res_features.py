@@ -3,6 +3,8 @@ import tensorflow as tf
 from tensorflow.contrib import slim
 import cv2
 import numpy as np
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
 from nets import nets_factory
 
 res_scope = nets_factory.arg_scopes_map['resnet_v1_50']
@@ -19,7 +21,7 @@ class MLP:
         loss = tf.losses.softmax_cross_entropy(onehot_labels=y, logits=self.logits)
         opt = tf.train.AdamOptimizer()
         self.grads = opt.compute_gradients(loss)
-        self.grads = [(g, v) for (g, v) in self.grads if self.grad_filter(block_k=0, v=v)] # if 0 update everything but logits
+        self.grads = [(g, v) for (g, v) in self.grads if self.grad_filter(block_k=4, v=v)] # if 0 update everything but logits
         self.update = opt.apply_gradients(self.grads)
         n_equals = tf.cast(tf.equal(tf.argmax(y, axis=1), tf.argmax(self.logits, axis=1)), dtype=tf.float32)
         self.accuracy = tf.reduce_mean(n_equals)
@@ -51,9 +53,9 @@ class MLP:
          
     def build(self):
         with tf.variable_scope('classifier'):
-            l1 = slim.fully_connected(self.features, 200, activation_fn=tf.nn.relu)
-            l2 = slim.fully_connected(l1, 200, activation_fn=tf.nn.relu)
-            self.logits = tf.layers.dense(l2, N_CLASSES, activation=None)
+            self.l1 = slim.fully_connected(self.features, 200, activation_fn=tf.nn.relu)
+            self.l2 = slim.fully_connected(self.l1, 200, activation_fn=tf.nn.relu)
+            self.logits = tf.layers.dense(self.l2, N_CLASSES, activation=None)
 
     def preprocess_imgs(self, imgs): 
         transformed_imgs = []
@@ -74,7 +76,13 @@ class MLP:
     def train(self, labels, imgs, i):
         imgs = self.preprocess_imgs(imgs)
         y_hat, _, acc = self.sess.run([self.logits, self.update, self.accuracy], feed_dict={self.imgs: imgs, self.labels: labels}) 
-        print('iter {} train accuracy: {}'.format(i, acc))
+        if i % 10 == 0:
+            print('iter {} train accuracy: {}'.format(i, acc))
+
+    def get_features(self, imgs):
+        imgs = self.preprocess_imgs(imgs)
+        features = self.sess.run(self.features, feed_dict={self.imgs: imgs})
+        return features
 
     def save(self, i):
         self.saver.save(self.sess, 'mnist_ckpt/mnist', global_step=i)
@@ -85,19 +93,30 @@ class MLP:
             self.saver.restore(self.sess, ckpt_path) 
         return 0 if ckpt_path is None else int(ckpt_path.split('-')[-1])
 
-def vizualize_feature():
-    return
+def visualize_features(features, labels):
+    color_map = {0: 'black', 1: 'gray', 2: 'silver', 3: 'rosybrown', 4: 'red', 5: 'sienna', 6: 'gold', 7: 'olivedrab', 8: 'darkgreen', 9: 'blue'}
+    colors = np.array([color_map[l] for l in labels])
+    tsne_features = TSNE(n_components=2).fit_transform(features)
+    plt.scatter(tsne_features[:, 0], tsne_features[:, 1], c=colors)
+    plt.show()
+    plt.savefig('res_tsne.pdf')
 
 mnist = tf.contrib.learn.datasets.load_dataset("mnist")
 
 mlp = MLP(res_checkpoint_dir='/home/ubuntu/feature_viz/resnet_v1_50.ckpt')
 i = mlp.load()
 batch_size = 128
-while(mnist.train._epochs_completed < 9):
+while(mnist.train._epochs_completed < 9 and i < 3800):
     batch_x, batch_y = mnist.train.next_batch(batch_size)
     mlp.train(batch_y, batch_x, i)
     i += 1
     if i % 100 == 0:
+        batch_test_x, batch_test_y = mnist.test.next_batch(100)
+        mlp.test(batch_test_y, batch_test_x, i)
         mlp.save(i)
         print('EPOCH: ', mnist.train._epochs_completed)
         print('saving after {} iterations'.format(i))
+
+batch_x, batch_y = mnist.train.next_batch(100)
+features = mlp.get_features(batch_x)
+visualize_features(features, batch_y)
