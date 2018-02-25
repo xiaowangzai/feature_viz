@@ -16,12 +16,12 @@ class MLP:
         self.labels = tf.placeholder(tf.int64, [None])
         y = tf.one_hot(self.labels, depth=N_CLASSES, dtype=tf.int64)
 
-        loss = tf.losses.mean_squared_error(y, self.y_hat)
+        loss = tf.losses.softmax_cross_entropy(onehot_labels=y, logits=self.logits)
         opt = tf.train.AdamOptimizer()
         self.grads = opt.compute_gradients(loss)
         self.grads = [(g, v) for (g, v) in self.grads if self.grad_filter(block_k=0, v=v)] # if 0 update everything but logits
         self.update = opt.apply_gradients(self.grads)
-        n_equals = tf.cast(tf.equal(tf.argmax(y, axis=1), tf.argmax(self.y_hat, axis=1)), dtype=tf.float32)
+        n_equals = tf.cast(tf.equal(tf.argmax(y, axis=1), tf.argmax(self.logits, axis=1)), dtype=tf.float32)
         self.accuracy = tf.reduce_mean(n_equals)
 
         # pretrained resnet
@@ -53,7 +53,7 @@ class MLP:
         with tf.variable_scope('classifier'):
             l1 = slim.fully_connected(self.features, 200, activation_fn=tf.nn.relu)
             l2 = slim.fully_connected(l1, 200, activation_fn=tf.nn.relu)
-            self.y_hat = tf.layers.dense(l2, N_CLASSES, activation=tf.nn.softmax)
+            self.logits = tf.layers.dense(l2, N_CLASSES, activation=None)
 
     def preprocess_imgs(self, imgs): 
         transformed_imgs = []
@@ -68,12 +68,12 @@ class MLP:
 
     def test(self, labels, imgs, i):
         imgs = self.preprocess_imgs(imgs)
-        y_hat, accuracy = self.sess.run([self.y_hat, self.accuracy], feed_dict={self.imgs: imgs, self.labels:labels})
+        y_hat, accuracy = self.sess.run([self.logits, self.accuracy], feed_dict={self.imgs: imgs, self.labels:labels})
         print('iter {} test accuracy: {}'.format(i, accuracy))
 
     def train(self, labels, imgs, i):
         imgs = self.preprocess_imgs(imgs)
-        g, _, acc = self.sess.run([self.grads, self.update, self.accuracy], feed_dict={self.imgs: imgs, self.labels: labels}) 
+        y_hat, _, acc = self.sess.run([self.logits, self.update, self.accuracy], feed_dict={self.imgs: imgs, self.labels: labels}) 
         print('iter {} train accuracy: {}'.format(i, acc))
 
     def save(self, i):
@@ -90,7 +90,6 @@ def vizualize_feature():
 
 mnist = tf.contrib.learn.datasets.load_dataset("mnist")
 
-batch_x, batch_y = mnist.train.next_batch(1)
 mlp = MLP(res_checkpoint_dir='/home/ubuntu/feature_viz/resnet_v1_50.ckpt')
 i = mlp.load()
 batch_size = 128
