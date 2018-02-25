@@ -23,7 +23,7 @@ class MLP:
         loss = tf.losses.softmax_cross_entropy(onehot_labels=y, logits=self.logits)
         opt = tf.train.AdamOptimizer()
         self.grads = opt.compute_gradients(loss)
-        self.grads = [(g, v) for (g, v) in self.grads if self.grad_filter(block_k=4, v=v)] # if 0 update everything but logits
+        self.grads = [(g, v) for (g, v) in self.grads if self.grad_filter(block_k=3, v=v)] # if 0 update everything but logits
         self.update = opt.apply_gradients(self.grads)
         n_equals = tf.cast(tf.equal(tf.argmax(y, axis=1), tf.argmax(self.logits, axis=1)), dtype=tf.float32)
         self.accuracy = tf.reduce_mean(n_equals)
@@ -112,7 +112,7 @@ if __name__ == "__main__":
             print('EPOCH: ', mnist.train._epochs_completed)
             print('saving after {} iterations'.format(i))
 
-    batch_x, batch_y = mnist.test.next_batch(128)
+    batch_x, batch_y = mnist.test.next_batch(1280)
     features = mlp.get_features(batch_x)
     visualize_features(features, batch_y, model_name='resnet50')
 

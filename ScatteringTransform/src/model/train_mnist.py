@@ -24,7 +24,7 @@ def train_model():
     # Placeholder for data and Mnist iterator
     mnist = input_data.read_data_sets(FLAGS.raw_dir, one_hot=True)
     assert FLAGS.data_format == "NCHW", "Scattering only implemented in NCHW"
-    X_tensor = tf.placeholder(tf.float32, shape=[FLAGS.batch_size, 1, 28, 28])
+    X_tensor = tf.placeholder(tf.float32, shape=[128, 1, 28, 28])
     y_tensor = tf.placeholder(tf.int64, shape=[FLAGS.batch_size, 10])
 
     with tf.device('/cpu:0'):
@@ -146,6 +146,13 @@ def train_model():
                               (e, train_loss, validation_loss, train_acc, validation_acc))
     
     print('Finished training!')
-    x_batch_viz, y_batch_viz = mnist.test.next_batch(128)
-    features = sess.run(HCNN.l1, feed_dict={X_tensor: x_batch_viz.reshape(128, 1, 28, 28)})
-    visualize_features(features, np.argmax(y_batch_viz, axis=1), model_name='scatter_net')
+    stacked_features = []
+    stacked_labels = []
+    for _ in range(10): # get abouta  128*10 = 1k samples for TSNE
+        x_batch_viz, y_batch_viz = mnist.test.next_batch(128)
+        features = sess.run(HCNN.l1, feed_dict={X_tensor: x_batch_viz.reshape(128, 1, 28, 28)})
+        stacked_features.append(features)
+        stacked_labels.append(y_batch_viz)
+    stacked_features = np.vstack(stacked_features)
+    stacked_labels = np.vstack(stacked_labels)
+    visualize_features(stacked_features, np.argmax(stacked_labels, axis=1), model_name='scatter_net')
