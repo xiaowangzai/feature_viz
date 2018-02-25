@@ -39,8 +39,8 @@ def define_flags():
     ##############
     # Directories
     ##############
-    tf.app.flags.DEFINE_string('model_dir', '../../models', "Output folder where checkpoints are dumped.")
-    tf.app.flags.DEFINE_string('log_dir', '../../logs', "Logs for tensorboard.")
-    tf.app.flags.DEFINE_string('fig_dir', '../../figures', "Where to save figures.")
-    tf.app.flags.DEFINE_string('raw_dir', '../../data/raw', "Where raw data is saved")
-    tf.app.flags.DEFINE_string('data_dir', '../../data/processed', "Where processed data is saved")
+    tf.app.flags.DEFINE_string('model_dir', '/home/ubuntu/feature_viz/ScatteringTransform/src/models', "Output folder where checkpoints are dumped.")
+    tf.app.flags.DEFINE_string('log_dir', '/home/ubuntu/feature_viz/ScatteringTransform/src/logs', "Logs for tensorboard.")
+    tf.app.flags.DEFINE_string('fig_dir', '/home/ubuntu/feature_viz/ScatteringTransform/src/figures', "Where to save figures.")
+    tf.app.flags.DEFINE_string('raw_dir', '/home/ubuntu/feature_viz/ScatteringTransform/src/data/raw', "Where raw data is saved")
+    tf.app.flags.DEFINE_string('data_dir', '/home/ubuntu/feature_viz/ScatteringTransform/src/data/processed', "Where processed data is saved")

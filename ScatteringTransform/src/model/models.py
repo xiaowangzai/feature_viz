@@ -1,6 +1,6 @@
 import sys
 import tensorflow as tf
-sys.path.append("../utils")
+sys.path.append("/home/ubuntu/feature_viz/ScatteringTransform/src/utils")
 import layers
 from filters_bank import filters_bank
 

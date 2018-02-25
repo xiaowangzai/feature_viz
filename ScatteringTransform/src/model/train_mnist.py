@@ -3,7 +3,7 @@ import models
 import numpy as np
 from tqdm import tqdm
 import tensorflow as tf
-sys.path.append("../utils")
+sys.path.append("/home/ubuntu/feature_viz/ScatteringTransform/src/utils")
 import training_utils as tu
 import data_utils as du
 import layers
@@ -61,6 +61,18 @@ def train_model():
                 logits = layers.linear(self.l1, 10, name="dense2")
 
                 return logits
+
+        def get_features(self, x):
+            stacked_features = []
+            stacked_labels = []
+            batch_size = 128
+            #scatternet inputs must be divisible by 128
+            for i in range(0, x.shape[0], batch_size): # get abouta  128*10 = 1k samples for TSNE
+                x_batch = x[i:i+batch_size]
+                features = sess.run(HCNN.l1, feed_dict={X_tensor: x_batch.reshape(128, 1, 28, 28)})
+                stacked_features.append(features)
+            stacked_features = np.vstack(stacked_features)
+            return stacked_features
 
     HCNN = HybridCNN("HCNN")
     y_pred = HCNN(X_tensor)
@@ -146,13 +158,5 @@ def train_model():
                               (e, train_loss, validation_loss, train_acc, validation_acc))
     
     print('Finished training!')
-    stacked_features = []
-    stacked_labels = []
-    for _ in range(10): # get abouta  128*10 = 1k samples for TSNE
-        x_batch_viz, y_batch_viz = mnist.test.next_batch(128)
-        features = sess.run(HCNN.l1, feed_dict={X_tensor: x_batch_viz.reshape(128, 1, 28, 28)})
-        stacked_features.append(features)
-        stacked_labels.append(y_batch_viz)
-    stacked_features = np.vstack(stacked_features)
-    stacked_labels = np.vstack(stacked_labels)
-    visualize_features(stacked_features, np.argmax(stacked_labels, axis=1), model_name='scatter_net')
+    return HCNN
+

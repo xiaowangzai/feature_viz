@@ -2,7 +2,7 @@ import tensorflow as tf
 import random
 import numpy as np
 import sys
-sys.path.append("../utils")
+sys.path.append("/home/ubuntu/feature_viz/ScatteringTransform/src/utils")
 import logging_utils as lu
 
 

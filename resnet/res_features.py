@@ -9,10 +9,12 @@ import sys
 sys.path.append('/home/ubuntu/feature_viz')
 from visualize import visualize_features
 
+RES_CHECKPOINT_DIR = '/home/ubuntu/feature_viz/resnet/resnet_v1_50.ckpt' # where original pretrained resnet is stored
 res_scope = nets_factory.arg_scopes_map['resnet_v1_50']
 N_CLASSES=10
 class MLP:
-    def __init__(self, res_checkpoint_dir):
+    def __init__(self, block_k):
+
         self.imgs = tf.placeholder(tf.float32, [None, None, None, 3])
         self.feature_extractor()
         self.build()
@@ -23,13 +25,13 @@ class MLP:
         loss = tf.losses.softmax_cross_entropy(onehot_labels=y, logits=self.logits)
         opt = tf.train.AdamOptimizer()
         self.grads = opt.compute_gradients(loss)
-        self.grads = [(g, v) for (g, v) in self.grads if self.grad_filter(block_k=3, v=v)] # if 0 update everything but logits
+        self.grads = [(g, v) for (g, v) in self.grads if self.grad_filter(block_k=block_k, v=v)] # if 0 update everything but logits
         self.update = opt.apply_gradients(self.grads)
         n_equals = tf.cast(tf.equal(tf.argmax(y, axis=1), tf.argmax(self.logits, axis=1)), dtype=tf.float32)
         self.accuracy = tf.reduce_mean(n_equals)
 
         # pretrained resnet
-        restore_fn = slim.assign_from_checkpoint_fn(res_checkpoint_dir, self.res_variables_to_restore)
+        restore_fn = slim.assign_from_checkpoint_fn(RES_CHECKPOINT_DIR, self.res_variables_to_restore)
         self.saver = tf.train.Saver(tf.trainable_variables())
         self.sess = tf.Session()
         restore_fn(self.sess)
@@ -78,7 +80,7 @@ class MLP:
     def train(self, labels, imgs, i):
         imgs = self.preprocess_imgs(imgs)
         y_hat, _, acc = self.sess.run([self.logits, self.update, self.accuracy], feed_dict={self.imgs: imgs, self.labels: labels}) 
-        if i % 10 == 0:
+        if i % 100 == 0:
             print('iter {} train accuracy: {}'.format(i, acc))
 
     def get_features(self, imgs):
@@ -87,21 +89,21 @@ class MLP:
         return features
 
     def save(self, i):
-        self.saver.save(self.sess, 'mnist_ckpt/mnist', global_step=i)
+        self.saver.save(self.sess, '/home/ubuntu/feature_viz/resnet/mnist_ckpt/mnist', global_step=i)
 
     def load(self):
-        ckpt_path = tf.train.latest_checkpoint('mnist_ckpt')
+        ckpt_path = tf.train.latest_checkpoint('/home/ubuntu/feature_viz/resnet/mnist_ckpt')
         if ckpt_path is not None:
             self.saver.restore(self.sess, ckpt_path) 
         return 0 if ckpt_path is None else int(ckpt_path.split('-')[-1])
 
-if __name__ == "__main__":
+def train(freeze_before_k):
     mnist = tf.contrib.learn.datasets.load_dataset("mnist")
 
-    mlp = MLP(res_checkpoint_dir='/home/ubuntu/feature_viz/resnet/resnet_v1_50.ckpt')
+    mlp = MLP(block_k=freeze_before_k)
     i = mlp.load()
     batch_size = 128
-    while(mnist.train._epochs_completed < 6 and i*batch_size < 6 * 55000):
+    while(mnist.train._epochs_completed < 2 and i*batch_size < 2 * 55000):
         batch_x, batch_y = mnist.train.next_batch(batch_size)
         mlp.train(batch_y, batch_x, i)
         i += 1
@@ -112,7 +114,5 @@ if __name__ == "__main__":
             print('EPOCH: ', mnist.train._epochs_completed)
             print('saving after {} iterations'.format(i))
 
-    batch_x, batch_y = mnist.test.next_batch(1280)
-    features = mlp.get_features(batch_x)
-    visualize_features(features, batch_y, model_name='resnet50')
+    return mlp
 
