@@ -109,7 +109,7 @@ def train(freeze_before_k):
     mlp = MLP(block_k=freeze_before_k)
     i = mlp.load()
     batch_size = 128
-    while(mnist.train._epochs_completed < 3 and i*batch_size < 3 * 55000):
+    while(mnist.train._epochs_completed < 10 and i*batch_size < 10 * 55000):
         batch_x, batch_y = mnist.train.next_batch(batch_size)
         mlp.train(batch_y, batch_x, i)
         i += 1

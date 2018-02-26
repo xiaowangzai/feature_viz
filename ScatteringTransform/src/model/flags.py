@@ -14,7 +14,7 @@ def define_flags():
     ##########################
     # Training parameters
     ###########################
-    tf.app.flags.DEFINE_integer('nb_epoch', 10, "Number of epochs")
+    tf.app.flags.DEFINE_integer('nb_epoch', 30, "Number of epochs")
     tf.app.flags.DEFINE_integer('batch_size', 128, "Number of samples per batch.")
     tf.app.flags.DEFINE_integer('nb_batch_per_epoch', 30, "Number of batches per epoch")
     tf.app.flags.DEFINE_float('learning_rate', 1E-5, "Learning rate used for AdamOptimizer")
