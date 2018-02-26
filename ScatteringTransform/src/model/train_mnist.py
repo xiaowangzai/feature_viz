@@ -79,7 +79,8 @@ def train_model():
             for i in range(0, x.shape[0], batch_size):
                 x_batch = x[i:i+batch_size]
                 y_batch = labels[i:i+batch_size]
-                batch_accuracy = sess.run(accuracy, feed_dict={X_tensor:x_batch, y_tensor:y_batch})
+                batch_accuracy = sess.run(accuracy, feed_dict={
+                    X_tensor:x_batch.reshape(128, 1, 28, 28), y_tensor:y_batch})
                 acc_list.append(batch_accuracy)
             return np.mean(acc_list)
 
