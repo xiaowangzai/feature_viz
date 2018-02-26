@@ -64,7 +64,6 @@ def train_model():
 
         def get_features(self, x):
             stacked_features = []
-            stacked_labels = []
             batch_size = 128
             #scatternet inputs must be divisible by 128
             for i in range(0, x.shape[0], batch_size): # get abouta  128*10 = 1k samples for TSNE
@@ -73,6 +72,17 @@ def train_model():
                 stacked_features.append(features)
             stacked_features = np.vstack(stacked_features)
             return stacked_features
+
+        def score(self, x, labels):
+            acc_list = []
+            batch_size = 128
+            for i in range(0, x.shape[0], batch_size):
+                x_batch = x[i:i+batch_size]
+                y_batch = labels[i:i+batch_size]
+                batch_accuracy = sess.run(accuracy, feed_dict={X_tensor:x_batch, y_tensor:y_batch})
+                acc_list.append(batch_accuracy)
+            return np.mean(acc_list)
+
 
     HCNN = HybridCNN("HCNN")
     y_pred = HCNN(X_tensor)

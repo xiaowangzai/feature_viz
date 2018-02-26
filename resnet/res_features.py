@@ -14,7 +14,7 @@ res_scope = nets_factory.arg_scopes_map['resnet_v1_50']
 N_CLASSES=10
 class MLP:
     def __init__(self, block_k):
-
+        self.model_dir = '/home/ubuntu/feature_viz/resnet/mnist_ckpt_block{}'.format(block_k)
         self.imgs = tf.placeholder(tf.float32, [None, None, None, 3])
         self.feature_extractor()
         self.build()
@@ -77,6 +77,11 @@ class MLP:
         y_hat, accuracy = self.sess.run([self.logits, self.accuracy], feed_dict={self.imgs: imgs, self.labels:labels})
         print('iter {} test accuracy: {}'.format(i, accuracy))
 
+    def score(self, imgs, labels):
+        imgs = self.preprocess_imgs(imgs)
+        accuracy = self.sess.run(self.accuracy, feed_dict={self.imgs: imgs, self.labels: labels})
+        return accuracy
+
     def train(self, labels, imgs, i):
         imgs = self.preprocess_imgs(imgs)
         y_hat, _, acc = self.sess.run([self.logits, self.update, self.accuracy], feed_dict={self.imgs: imgs, self.labels: labels}) 
@@ -89,10 +94,10 @@ class MLP:
         return features
 
     def save(self, i):
-        self.saver.save(self.sess, '/home/ubuntu/feature_viz/resnet/mnist_ckpt/mnist', global_step=i)
+        self.saver.save(self.sess, self.model_dir+'/mnist', global_step=i)
 
     def load(self):
-        ckpt_path = tf.train.latest_checkpoint('/home/ubuntu/feature_viz/resnet/mnist_ckpt')
+        ckpt_path = tf.train.latest_checkpoint(self.model_dir)
         if ckpt_path is not None:
             self.saver.restore(self.sess, ckpt_path) 
         return 0 if ckpt_path is None else int(ckpt_path.split('-')[-1])
