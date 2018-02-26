@@ -52,13 +52,13 @@ def train_model():
                 M, N = x.get_shape().as_list()[-2:]
                 x = scattering.Scattering(M=M, N=N, J=2)(x)
                 x = tf.contrib.layers.batch_norm(x, data_format=FLAGS.data_format, fused=True, scope="scat_bn")
-                block = layers.conv2d_block("CONV2D", x, 64, 1, 1, p="SAME", data_format=FLAGS.data_format, bias=True, bn=False, activation_fn=tf.nn.relu)
+                self.block = layers.conv2d_block("CONV2D", x, 64, 1, 1, p="SAME", data_format=FLAGS.data_format, bias=True, bn=False, activation_fn=tf.nn.relu)
 
                 target_shape = (-1, 64 * 7 * 7)
-                block = layers.reshape(block, target_shape)
-                self.l1 = layers.linear(block, 512, name="dense1")
-                self.l1 = tf.nn.relu(self.l1)
-                logits = layers.linear(self.l1, 10, name="dense2")
+                self.block = layers.reshape(self.block, target_shape)
+                l1 = layers.linear(self.block, 512, name="dense1")
+                l1 = tf.nn.relu(l1)
+                logits = layers.linear(l1, 10, name="dense2")
 
                 return logits
 
@@ -68,7 +68,8 @@ def train_model():
             #scatternet inputs must be divisible by 128
             for i in range(0, x.shape[0], batch_size): # get abouta  128*10 = 1k samples for TSNE
                 x_batch = x[i:i+batch_size]
-                features = sess.run(HCNN.l1, feed_dict={X_tensor: x_batch.reshape(128, 1, 28, 28)})
+                features = sess.run(HCNN.block, feed_dict={X_tensor: x_batch.reshape(128, 1, 28, 28)})
+                features = features.reshape(128, -1)
                 stacked_features.append(features)
             stacked_features = np.vstack(stacked_features)
             return stacked_features
@@ -76,9 +77,11 @@ def train_model():
         def score(self, x, labels):
             acc_list = []
             batch_size = 128
+            one_hot_labels = np.zeros(shape=(labels.shape[0], 10))
+            one_hot_labels[np.arange(labels.size), labels] = 1
             for i in range(0, x.shape[0], batch_size):
                 x_batch = x[i:i+batch_size]
-                y_batch = labels[i:i+batch_size]
+                y_batch = one_hot_labels[i:i+batch_size]
                 batch_accuracy = sess.run(accuracy, feed_dict={
                     X_tensor:x_batch.reshape(128, 1, 28, 28), y_tensor:y_batch})
                 acc_list.append(batch_accuracy)
